@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa de España con Gato - OpenStreetMap</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header h1 i {
+            margin-right: 10px;
+            color: #f1c40f;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .map-container {
+            position: relative;
+            height: 600px;
+            width: 100%;
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        
+        .cat-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 25px;
+            border-radius: 50px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            backdrop-filter: blur(5px);
+            border: 2px solid #f1c40f;
+        }
+        
+        .cat-info i {
+            font-size: 24px;
+            color: #e67e22;
+        }
+        
+        .cat-info span {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .cat-badge {
+            background: #f1c40f;
+            color: #2c3e50;
+            padding: 5px 15px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .controls-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            max-width: 280px;
+        }
+        
+        .controls-panel h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .control-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .control-btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+        
+        .cat-btn {
+            background: #e67e22;
+        }
+        
+        .cat-btn:hover {
+            background: #d35400;
+        }
+        
+        .info-panel {
+            padding: 25px;
+            background: #f8fafc;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .info-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid #3498db;
+        }
+        
+        .info-card h4 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .cat-card {
+            border-left-color: #e67e22;
+            background: linear-gradient(135deg, #fff 0%, #fef5e7 100%);
+        }
+        
+        .cat-card h4 {
+            color: #e67e22;
+        }
+        
+        .upload-section {
+            background: #f0f0f0;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border: 2px dashed #e67e22;
+        }
+        
+        .upload-section i {
+            font-size: 48px;
+            color: #e67e22;
+            margin-bottom: 15px;
+        }
+        
+        .file-input {
+            margin: 15px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 100%;
+            background: white;
+        }
+        
+        .preview-image {
+            max-width: 100px;
+            max-height: 100px;
+            margin: 10px auto;
+            border-radius: 10px;
+            border: 3px solid #e67e22;
+            display: none;
+        }
+        
+        .preview-image.show {
+            display: block;
+        }
+        
+        .coordinate-box {
+            background: #1a2634;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.8;
+            margin: 15px 0;
+        }
+        
+        .cat-coordinates {
+            color: #f1c40f;
+            font-weight: bold;
+        }
+        
+        .footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            font-size: 0.9em;
+        }
+        
+        .footer a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .ruta-info {
+            font-family: monospace;
+            background: #ecf0f1;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            word-break: break-all;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .success-message.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <i class="fas fa-map"></i>
+                Mapa de España con Gato
+            </h1>
+            <p><i class="fas fa-cat"></i> Sube tu imagen de gato directamente</p>
+        </div>
+        
+        <div class="map-container">
+            <!-- Mapa -->
+            <div id="map"></div>
+            
+            <!-- Info del gato -->
+            <div class="cat-info">
+                <i class="fas fa-cat"></i>
+                <span>Gato en el mapa</span>
+                <div class="cat-badge" id="catStatus">
+                    <i class="fas fa-image"></i> Imagen local
+                </div>
+            </div>
+            
+            <!-- Panel de control -->
+            <div class="controls-panel">
+                <h3><i class="fas fa-cat"></i> Controles del Gato</h3>
+                <div class="controls">
+                    <button class="control-btn cat-btn" onclick="moveCatRandom()">
+                        <i class="fas fa-random"></i>
+                        Mover gato aleatoriamente
+                    </button>
+                    <button class="control-btn cat-btn" onclick="moveCatToMadrid()">
+                        <i class="fas fa-map-pin"></i>
+                        Mover gato a Madrid
+                    </button>
+                    <button class="control-btn cat-btn" onclick="moveCatToBarcelona()">
+                        <i class="fas fa-map-pin"></i>
+                        Mover gato a Barcelona
+                    </button>
+                    <button class="control-btn cat-btn" onclick="moveCatToSevilla()">
+                        <i class="fas fa-map-pin"></i>
+                        Mover gato a Sevilla
+                    </button>
+                    <button class="control-btn" onclick="centerMap()">
+                        <i class="fas fa-search"></i>
+                        Centrar mapa en España
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3><i class="fas fa-info-circle"></i> Información del Gato</h3>
+                <span class="cat-badge" id="markerCount">
+                    <i class="fas fa-cat"></i> Gato activo
+                </span>
+            </div>
+            
+            <div class="coordinate-box">
+                <i class="fas fa-cat cat-coordinates"></i> 
+                <span class="cat-coordinates">Posición actual del gato:</span><br>
+                <span id="catCoordinates">Madrid (40.416775, -3.703790)</span><br>
+                <small>Latitud: <span id="catLat">40.416775</span> | Longitud: <span id="catLng">-3.703790</span></small>
+            </div>
+            
+            <div class="info-grid">
+                <div class="info-card cat-card">
+                    <h4><i class="fas fa-cat"></i> Sube tu imagen de gato</h4>
+                    <div class="upload-section">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Selecciona una imagen de gato desde tu ordenador</p>
+                        
+                        <!-- Input para subir archivo -->
+                        <input type="file" id="catImageInput" class="file-input" accept="image/*" onchange="handleImageUpload(event)">
+                        
+                        <!-- Vista previa de la imagen -->
+                        <img id="preview" class="preview-image" src="#" alt="Vista previa del gato">
+                        
+                        <!-- Mensaje de éxito -->
+                        <div id="uploadSuccess" class="success-message">
+                            <i class="fas fa-check-circle"></i> ¡Imagen cargada correctamente!
+                        </div>
+                        
+                        <p style="margin-top: 15px; font-size: 12px; color: #7f8c8d;">
+                            <i class="fas fa-info-circle"></i> La imagen se guardará en memoria y aparecerá en el mapa
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="info-card">
+                    <h4><i class="fas fa-city"></i> Ciudades de España</h4>
+                    <ul style="list-style: none;">
+                        <li><i class="fas fa-map-pin" style="color: #e74c3c;"></i> <strong>Madrid:</strong> 40.416775, -3.703790</li>
+                        <li><i class="fas fa-map-pin" style="color: #e74c3c;"></i> <strong>Barcelona:</strong> 41.385063, 2.173404</li>
+                        <li><i class="fas fa-map-pin" style="color: #e74c3c;"></i> <strong>Sevilla:</strong> 37.389092, -5.984459</li>
+                        <li><i class="fas fa-map-pin" style="color: #e74c3c;"></i> <strong>Valencia:</strong> 39.469907, -0.376288</li>
+                        <li><i class="fas fa-map-pin" style="color: #e74c3c;"></i> <strong>Bilbao:</strong> 43.263012, -2.934985</li>
+                    </ul>
+                </div>
+                
+                <div class="info-card">
+                    <h4><i class="fas fa-code-branch"></i> Instrucciones para GitHub</h4>
+                    <div style="background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 5px; font-size: 12px;">
+                        <p><strong>📝 Para subir a GitHub:</strong></p>
+                        <ol style="margin-left: 20px;">
+                            <li>Guarda este HTML como <code>index.html</code></li>
+                            <li>En GitHub, crea un nuevo repositorio</li>
+                            <li>Sube SOLO el archivo <code>index.html</code></li>
+                            <li>La imagen la subirás después dentro de la web</li>
+                        </ol>
+                        <p style="margin-top: 10px;">
+                            <i class="fas fa-check-circle" style="color: #27ae60;"></i>
+                            ¡No necesitas crear carpetas!
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>
+                <i class="fas fa-heart" style="color: #e74c3c;"></i> 
+                Mapa de España con Gato • 
+                <a href="#" target="_blank">Ver en GitHub</a> • 
+                <i class="fas fa-cat"></i> Sube tu foto de gato
+            </p>
+            <p style="font-size: 0.8em; margin-top: 10px; opacity: 0.7;">
+                Datos del mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Inicialización del mapa centrado en España
+        var map = L.map('map').setView([40.416775, -3.703790], 6);
+        
+        // Capa base de OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        // Variable para almacenar el marcador del gato
+        var catMarker;
+        
+        // Variable para almacenar la imagen del gato en base64
+        var catImageBase64 = null;
+        
+        // Función para manejar la subida de la imagen
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // Mostrar vista previa
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Guardar la imagen en base64
+                    catImageBase64 = e.target.result;
+                    
+                    // Mostrar vista previa
+                    const preview = document.getElementById('preview');
+                    preview.src = catImageBase64;
+                    preview.classList.add('show');
+                    
+                    // Mostrar mensaje de éxito
+                    document.getElementById('uploadSuccess').classList.add('show');
+                    
+                    // Actualizar el marcador del gato con la nueva imagen
+                    updateCatMarker();
+                    
+                    // Ocultar mensaje después de 3 segundos
+                    setTimeout(() => {
+                        document.getElementById('uploadSuccess').classList.remove('show');
+                    }, 3000);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        // Función para crear el icono personalizado del gato
+        function createCatIcon() {
+            // Si hay una imagen subida, usarla
+            if (catImageBase64) {
+                return L.icon({
+                    iconUrl: catImageBase64,
+                    iconSize: [50, 50],
+                    iconAnchor: [25, 25],
+                    popupAnchor: [0, -25]
+                });
+            } else {
+                // Si no hay imagen, usar un icono por defecto de Font Awesome
+                return L.divIcon({
+                    html: '<i class="fas fa-cat" style="font-size: 30px; color: #e67e22;"></i>',
+                    className: 'cat-marker',
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15],
+                    popupAnchor: [0, -15]
+                });
+            }
+        }
+        
+        // Función para actualizar el marcador del gato
+        function updateCatMarker() {
+            if (catMarker) {
+                var latLng = catMarker.getLatLng();
+                var popupContent = catMarker.getPopup().getContent();
+                map.removeLayer(catMarker);
+                
+                catMarker = L.marker(latLng, {
+                    icon: createCatIcon(),
+                    title: '¡Aquí está el gato!'
+                }).addTo(map);
+                
+                catMarker.bindPopup(popupContent || `
+                    <b><i class="fas fa-cat"></i> ¡Gato aquí!</b><br>
+                    <b>Coordenadas:</b><br>
+                    Lat: ${latLng.lat.toFixed(6)}<br>
+                    Lng: ${latLng.lng.toFixed(6)}
+                `).openPopup();
+            }
+        }
+        
+        // Función para añadir el gato al mapa
+        function addCatToMap(lat, lng, ciudad) {
+            // Eliminar el gato anterior si existe
+            if (catMarker) {
+                map.removeLayer(catMarker);
+            }
+            
+            // Crear nuevo marcador con la imagen del gato
+            catMarker = L.marker([lat, lng], {
+                icon: createCatIcon(),
+                title: '¡Aquí está el gato!'
+            }).addTo(map);
+            
+            // Añadir popup con información
+            catMarker.bindPopup(`
+                <b><i class="fas fa-cat"></i> ¡Gato aquí!</b><br>
+                <b>Ubicación:</b> ${ciudad || 'Personalizada'}<br>
+                <b>Coordenadas:</b><br>
+                Lat: ${lat.toFixed(6)}<br>
+                Lng: ${lng.toFixed(6)}<br>
+                ${catImageBase64 ? '<small><i class="fas fa-check-circle" style="color: #27ae60;"></i> Imagen personalizada</small>' : ''}
+            `).openPopup();
+            
+            // Actualizar información en el panel
+            document.getElementById('catCoordinates').innerHTML = 
+                `${ciudad || 'Ubicación personalizada'} (${lat.toFixed(6)}, ${lng.toFixed(6)})`;
+            document.getElementById('catLat').innerHTML = lat.toFixed(6);
+            document.getElementById('catLng').innerHTML = lng.toFixed(6);
+            
+            // Actualizar estado
+            if (catImageBase64) {
+                document.getElementById('catStatus').innerHTML = '<i class="fas fa-check-circle"></i> Imagen personalizada';
+            }
+        }
+        
+        // Añadir el gato inicialmente en Madrid
+        addCatToMap(40.416775, -3.703790, 'Madrid');
+        
+        // Función para mover el gato aleatoriamente por España
+        function moveCatRandom() {
+            // Límites aproximados de España
+            var minLat = 36.0;
+            var maxLat = 43.8;
+            var minLng = -9.3;
+            var maxLng = 3.3;
+            
+            var lat = Math.random() * (maxLat - minLat) + minLat;
+            var lng = Math.random() * (maxLng - minLng) + minLng;
+            
+            addCatToMap(lat, lng, 'Aleatorio');
+            map.setView([lat, lng], 7);
+        }
+        
+        // Función para mover el gato a Madrid
+        function moveCatToMadrid() {
+            addCatToMap(40.416775, -3.703790, 'Madrid');
+            map.setView([40.416775, -3.703790], 12);
+        }
+        
+        // Función para mover el gato a Barcelona
+        function moveCatToBarcelona() {
+            addCatToMap(41.385063, 2.173404, 'Barcelona');
+            map.setView([41.385063, 2.173404], 12);
+        }
+        
+        // Función para mover el gato a Sevilla
+        function moveCatToSevilla() {
+            addCatToMap(37.389092, -5.984459, 'Sevilla');
+            map.setView([37.389092, -5.984459], 12);
+        }
+        
+        // Función para centrar el mapa en España
+        function centerMap() {
+            map.setView([40.416775, -3.703790], 6);
+        }
+        
+        // Evento para permitir mover el gato haciendo clic en el mapa
+        map.on('click', function(e) {
+            var lat = e.latlng.lat;
+            var lng = e.latlng.lng;
+            
+            // Solo permitir dentro de los límites aproximados de España
+            if (lat >= 35 && lat <= 44 && lng >= -10 && lng <= 4) {
+                addCatToMap(lat, lng, 'Clic personalizado');
+            } else {
+                alert('Por favor, haz clic dentro de España para mover el gato');
+            }
+        });
+        
+        // Mensaje de confirmación en consola
+        console.log('🐱 Mapa de España con gato inicializado');
+        console.log('📸 Puedes subir tu propia imagen de gato usando el selector de archivos');
+    </script>
+</body>
+</html>
